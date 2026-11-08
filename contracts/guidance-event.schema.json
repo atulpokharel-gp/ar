@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FieldGuide semantic spatial event v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "stepID", "action", "anchorMode", "requiresConfirmation"],
+  "properties": {
+    "version": {"const": 1},
+    "stepID": {"type": "string", "minLength": 1},
+    "action": {"enum": ["highlight", "lift", "rotate", "inspect"]},
+    "anchorMode": {"const": "manual-world-anchor"},
+    "requiresConfirmation": {"const": true}
+  }
+}
