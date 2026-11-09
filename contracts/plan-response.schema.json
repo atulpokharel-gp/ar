@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FieldGuide advisory multi-agent plan response v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status", "domain", "goal", "summary", "steps", "agents", "requiresHumanReview", "executable"],
+  "properties": {
+    "status": {"enum": ["proposal", "blocked", "needs_evidence"]},
+    "domain": {"enum": ["education", "assembly", "maintenance", "creative"]},
+    "goal": {"type": "string", "minLength": 1, "maxLength": 2000},
+    "summary": {"type": "string", "minLength": 1, "maxLength": 700},
+    "requiresHumanReview": {"const": true},
+    "executable": {"const": false},
+    "steps": {
+      "type": "array", "maxItems": 8,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["id", "title", "instruction", "action", "confirmation", "pages"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^proposal-[1-8]$"},
+          "title": {"type": "string", "minLength": 1, "maxLength": 120},
+          "instruction": {"type": "string", "minLength": 1, "maxLength": 1000},
+          "action": {"enum": ["marker", "arrow", "draw", "highlight", "inspect"]},
+          "confirmation": {"type": "string", "minLength": 1, "maxLength": 180},
+          "pages": {"type": "array", "uniqueItems": true, "items": {"type": "integer", "minimum": 1}}
+        }
+      }
+    },
+    "agents": {
+      "type": "array", "maxItems": 3,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["role", "status", "summary"],
+        "properties": {
+          "role": {"enum": ["planner", "reviewer", "presenter"]},
+          "status": {"enum": ["completed", "blocked"]},
+          "summary": {"type": "string", "minLength": 1, "maxLength": 600}
+        }
+      }
+    }
+  },
+  "allOf": [
+    {"if": {"properties": {"status": {"const": "proposal"}}},
+     "then": {"properties": {"steps": {"minItems": 1}, "agents": {"minItems": 3}}},
+     "else": {"properties": {"steps": {"maxItems": 0}}}}
+  ]
+}

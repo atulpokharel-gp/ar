@@ -7,6 +7,7 @@ struct ContentView: View {
     var body: some View {
         TabView(selection: $store.selectedTab) {
             PracticeView().tabItem { Label("Guide", systemImage: "viewfinder") }.tag(0)
+            TeamView().tabItem { Label("Agents", systemImage: "person.3") }.tag(4)
             ManualView().tabItem { Label("Manual", systemImage: "doc.text") }.tag(1)
             AgentView().tabItem { Label("Ask", systemImage: "waveform") }.tag(2)
             SettingsView().tabItem { Label("Connect", systemImage: "slider.horizontal.3") }.tag(3)
@@ -31,12 +32,15 @@ struct PracticeView: View {
                     }.foregroundStyle(.mint)
                     Text(store.completed ? "Practice complete." : "See it.\nUnderstand it.\nDo it.")
                         .font(.system(size: 38, weight: .bold, design: .rounded))
-                    Text("An iPhone prototype for guidance in the physical world.").foregroundStyle(.secondary)
+                    Text("Demonstrate ideas in real space with markers, arrows and sketches.").foregroundStyle(.secondary)
                     if !store.running {
+                        Picker("Demo scenario", selection: Binding(get: { store.scenarioID }, set: { store.selectScenario($0) })) {
+                            ForEach(demoScenarios) { scenario in Text(scenario.name).tag(scenario.id) }
+                        }.pickerStyle(.menu)
                         VStack(alignment: .leading, spacing: 14) {
-                            Label("Start with a harmless practice task", systemImage: "shippingbox")
+                            Label(store.scenario.name, systemImage: "shippingbox")
                                 .font(.headline)
-                            Text("Grab an empty cardboard box. Learn how spatial cues and step confirmation work. No device recognition or automatic repair verification is enabled.").foregroundStyle(.secondary)
+                            Text(store.scenario.detail + " These are authored practice scenarios, not AI-generated or verified field procedures.").foregroundStyle(.secondary)
                             Button(store.completed ? "Try again" : "Start AR practice") { store.start() }
                                 .buttonStyle(.borderedProminent).controlSize(.large)
                         }.padding(20).background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 24))
@@ -48,9 +52,15 @@ struct PracticeView: View {
                         }.clipShape(RoundedRectangle(cornerRadius: 24))
                         Label(store.trackingMessage, systemImage: store.trackingReady ? "scope" : "exclamationmark.circle")
                             .font(.caption).foregroundStyle(store.trackingReady ? Color.mint : Color.orange)
-                        ProgressView(value: Double(store.index), total: Double(practiceSteps.count))
+                        Picker("Spatial tool", selection: $store.overlayTool) {
+                            ForEach(OverlayTool.allCases) { tool in Text(tool.rawValue.capitalized).tag(tool) }
+                        }.pickerStyle(.segmented)
+                        Text(store.overlayTool == .draw ? "Drag on a detected surface to draw. Keep the camera steady." : store.overlayTool == .arrow ? "Tap a start point, then tap the destination to draw an arrow." : "Tap a detected surface to place a marker.")
+                            .font(.caption).foregroundStyle(.secondary)
+                        Button("Clear annotations") { store.clearDrawing() }.font(.footnote)
+                        ProgressView(value: Double(store.index), total: Double(store.steps.count))
                         VStack(alignment: .leading, spacing: 14) {
-                            Text("STEP \(store.index + 1) OF \(practiceSteps.count)").font(.caption.bold()).foregroundStyle(.mint)
+                            Text("STEP \(store.index + 1) OF \(store.steps.count)").font(.caption.bold()).foregroundStyle(.mint)
                             Text(store.step.title).font(.title2.bold())
                             Text(store.step.instruction).foregroundStyle(.secondary)
                             Button { store.speak() } label: { Label("Read this step", systemImage: "speaker.wave.2") }
@@ -59,7 +69,7 @@ struct PracticeView: View {
                             HStack {
                                 Button("Back") { store.back() }.disabled(store.index == 0)
                                 Spacer()
-                                Button(store.index == practiceSteps.count - 1 ? "Finish" : "Next step") { store.next() }
+                                Button(store.index == store.steps.count - 1 ? "Finish" : "Next step") { store.next() }
                                     .buttonStyle(.borderedProminent).disabled(!store.canAdvance)
                             }
                             HStack {
@@ -68,11 +78,11 @@ struct PracticeView: View {
                                 Button("Stop", role: .destructive) { store.stop() }
                             }.font(.footnote)
                         }.padding(20).background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 24))
-                        Text("Keep the object still. Cues are anchored to the room, not tracked to moving parts. Completion is confirmed by you.")
+                        Text("Keep the surface still. Drawings and cues are anchored to the room, not tracked to moving objects. Completion is confirmed by you.")
                             .font(.caption).foregroundStyle(.secondary)
                     }
                 }.padding(24)
-            }.background(Color(red: 0.035, green: 0.055, blue: 0.07)).toolbar(.hidden, for: .navigationBar)
+            }.scrollDisabled(store.running && store.overlayTool == .draw).background(Color(red: 0.035, green: 0.055, blue: 0.07)).toolbar(.hidden, for: .navigationBar)
         }
     }
 }
@@ -148,8 +158,8 @@ struct SettingsView: View {
                     Label("Spoken instructions", systemImage: "speaker.wave.2")
                     Text("Voice commands, gaze/pinch, hand tracking, live scene recognition, and headset clients are planned—not implemented in this build.").font(.caption)
                 }
-                Section("Prototype 0.1") {
-                    Text("iPhone first. Shared semantic action contract prepared for future headset clients. No supported real-device repair procedures yet.")
+                Section("Prototype 0.2") {
+                    Text("iPhone first. Multiple authored demo domains, spatial drawing, and optional planner/reviewer/presenter agents. Generated plans remain review-only. Headset clients and live scene understanding are not implemented.")
                 }
             }.navigationTitle("Connect")
         }

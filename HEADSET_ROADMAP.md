@@ -1,5 +1,9 @@
 # Dynamic guidance on iPhone and AR/VR glasses
 
+## Version 0.2 update
+
+Markers, two-tap arrows, freehand world-space drawing, three authored domain demos and optional planner/reviewer/presenter proposals are now implemented in the iPhone source. Generated proposals remain review-only. See MULTI_AGENT_AR.md. All headset clients remain planned.
+
 ## Product direction
 
 One procedure/controller contract, multiple spatial clients. The current deliverable implements the iPhone client only. The shared event is declared in Models.swift and contracts/guidance-event.schema.json. It is not yet a deployed network protocol.

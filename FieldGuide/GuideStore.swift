@@ -3,6 +3,13 @@ import AVFoundation
 import PDFKit
 
 @MainActor final class GuideStore: ObservableObject {
+    @Published var scenarioID = "assembly"
+    @Published var overlayTool: OverlayTool = .marker
+    @Published var clearDrawingToken = UUID()
+    @Published var planningDomain = "education"
+    @Published var planningGoal = ""
+    @Published var planReply: PlanReply?
+    @Published var planning = false
     @Published var index = 0
     @Published var confirmed = false
     @Published var completed = false
@@ -22,7 +29,11 @@ import PDFKit
     @Published var accessToken = ""
     @Published var consent = false
     private let speaker = AVSpeechSynthesizer()
-    var step: GuideStep { practiceSteps[index] }
+    var scenario: DemoScenario { demoScenarios.first { $0.id == scenarioID } ?? demoScenarios[0] }
+    var steps: [GuideStep] { scenario.steps }
+    var step: GuideStep { steps[min(index, steps.count - 1)] }
+    func selectScenario(_ id: String) { stop(); scenarioID = id; index = 0; completed = false }
+    func clearDrawing() { clearDrawingToken = UUID() }
     var canAdvance: Bool { running && confirmed && (index == 0 || (anchorPlaced && trackingReady)) }
     var event: GuidanceEvent {
         .init(version: 1, stepID: step.id, action: SpatialAction(rawValue: step.action) ?? .inspect,
@@ -34,7 +45,7 @@ import PDFKit
     func next() {
         guard canAdvance else { return }
         speaker.stopSpeaking(at: .immediate)
-        if index == practiceSteps.count - 1 { completed = true; stop() }
+        if index == steps.count - 1 { completed = true; stop() }
         else { index += 1; confirmed = false }
     }
     func back() {
@@ -62,6 +73,34 @@ import PDFKit
             guard !extracted.isEmpty else { throw GuideError.message("No readable text found. Scanned manuals need OCR, which this prototype does not include.") }
             guard extracted.reduce(0, { $0 + $1.text.utf8.count }) <= 800_000 else { throw GuideError.message("Extracted text exceeds the prototype limit. Import a shorter section.") }
             pages = extracted; manualName = url.lastPathComponent; reply = nil
+        } catch { self.error = error.localizedDescription }
+    }
+    func requestPlan() async {
+        guard !planning else { return }
+        let goal = planningGoal.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !goal.isEmpty, goal.count <= 2000 else { error = "Enter a goal under 2,000 characters."; return }
+        guard consent, !accessToken.isEmpty else { error = "Configure your backend token and allow sending text in Connect."; return }
+        guard let base = URL(string: endpoint), base.scheme == "https", base.host != nil,
+              base.user == nil, base.password == nil, base.query == nil, base.fragment == nil else {
+            error = "Enter a valid HTTPS backend URL in Connect."; return
+        }
+        planning = true; planReply = nil
+        defer { planning = false }
+        do {
+            var request = URLRequest(url: base.appendingPathComponent("plan"))
+            request.httpMethod = "POST"; request.timeoutInterval = 150
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue("Bearer " + accessToken, forHTTPHeaderField: "Authorization")
+            request.httpBody = try JSONEncoder().encode(PlanRequest(domain: planningDomain, goal: goal, pages: pages))
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+                throw GuideError.message("Planning failed. Check your connection, provider configuration and request. No demo was substituted.")
+            }
+            let proposed = try JSONDecoder().decode(PlanReply.self, from: data)
+            guard proposed.requiresHumanReview, !proposed.executable else {
+                throw GuideError.message("The server returned an unsupported execution policy.")
+            }
+            planReply = proposed
         } catch { self.error = error.localizedDescription }
     }
     func ask() async {
