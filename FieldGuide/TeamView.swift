@@ -42,6 +42,11 @@ struct TeamView: View {
                                 Text(step.instruction)
                                 Label("Suggested cue: " + step.action, systemImage: "pencil.tip.crop.circle")
                                     .font(.caption).foregroundStyle(.mint)
+                                if let evidence = step.evidence {
+                                    ForEach(Array(evidence.enumerated()), id: \.offset) { _, excerpt in
+                                        Text("Page \(excerpt.page): \(excerpt.quote)").font(.caption).foregroundStyle(.secondary)
+                                    }
+                                }
                                 if !step.pages.isEmpty { Text("Source pages: " + step.pages.map(String.init).joined(separator: ", ")).font(.caption) }
                             }.padding().frame(maxWidth: .infinity, alignment: .leading)
                                 .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 16))

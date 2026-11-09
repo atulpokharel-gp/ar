@@ -30,7 +30,7 @@ Generated proposals are review-only in the Agents tab. There is intentionally no
 - Stop/background/tab changes: stops the session and clears annotations.
 - Bounded geometry: one animated marker, 24 arrows and 600 drawing segments. Oldest elements are removed at the limit.
 
-Positions are approximate world-space placements. No object recognition, automatic target placement, QR/image marker recognition, moving-part tracking, metric measurement, hand tracking or physical completion verification is included. "Marker" here means a user-placed AR annotation, not a fiducial detector.
+Positions are approximate world-space placements. The separate v0.3 Image target view recognizes an imported flat reference image and places an overlay on its anchor. The surface drawing view remains manually placed. There is no arbitrary object recognition, QR decoding, moving-part understanding, metric measurement, hand tracking or physical completion verification. "Marker" here means a user-placed AR annotation, not a fiducial detector.
 
 ## Extending to fields
 

@@ -103,6 +103,28 @@ class AgentTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 server.plan({'domain': 'creative', 'goal': 'Explain a cardboard shape'})
 
+class ExcerptTests(unittest.TestCase):
+    def setUp(self):
+        self.context = [{'page': 2, 'text': 'Inspect the paper tray visually. Keep the cover closed.'}]
+        self.draft = copy.deepcopy(DRAFT)
+        self.draft['steps'][0]['pages'] = [2]
+        self.draft['steps'][0]['evidence'] = [{'page': 2, 'quote': 'Inspect the paper tray visually.'}]
+    def test_exact_source_excerpt_accepted(self):
+        steps = server.validate_steps(self.draft, self.context, 'maintenance')
+        self.assertEqual(steps[0]['evidence'][0]['page'], 2)
+    def test_invented_quote_rejected(self):
+        self.draft['steps'][0]['evidence'][0]['quote'] = 'Remove the screws and open the cover.'
+        with self.assertRaises(ValueError):
+            server.validate_steps(self.draft, self.context, 'maintenance')
+    def test_existing_page_without_quote_rejected(self):
+        self.draft['steps'][0]['evidence'] = []
+        with self.assertRaises(ValueError):
+            server.validate_steps(self.draft, self.context, 'maintenance')
+    def test_quote_from_uncited_page_rejected(self):
+        self.draft['steps'][0]['evidence'][0]['page'] = 3
+        with self.assertRaises(ValueError):
+            server.validate_steps(self.draft, self.context, 'maintenance')
+
 class HTTPTests(unittest.TestCase):
     def setUp(self):
         self.http = server.ThreadingHTTPServer(('127.0.0.1', 0), server.Handler)

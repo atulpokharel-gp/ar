@@ -61,6 +61,7 @@ struct AgentStage: Decodable, Identifiable {
     let status: String
     let summary: String
 }
+struct SourceExcerpt: Decodable { let page: Int; let quote: String }
 struct ProposedStep: Decodable, Identifiable {
     let id: String
     let title: String
@@ -68,6 +69,7 @@ struct ProposedStep: Decodable, Identifiable {
     let action: String
     let confirmation: String
     let pages: [Int]
+    let evidence: [SourceExcerpt]?
 }
 struct PlanReply: Decodable {
     let status: String

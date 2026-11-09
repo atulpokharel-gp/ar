@@ -20,6 +20,7 @@ struct ContentView: View {
     }
 }
 struct PracticeView: View {
+    @State private var imageTargetOpen = false
     @EnvironmentObject var store: GuideStore
     var body: some View {
         NavigationStack {
@@ -34,6 +35,9 @@ struct PracticeView: View {
                         .font(.system(size: 38, weight: .bold, design: .rounded))
                     Text("Demonstrate ideas in real space with markers, arrows and sketches.").foregroundStyle(.secondary)
                     if !store.running {
+                        Button { store.stop(); imageTargetOpen = true } label: {
+                            Label("Track a reference image", systemImage: "photo.on.rectangle.angled")
+                        }.buttonStyle(.bordered)
                         Picker("Demo scenario", selection: Binding(get: { store.scenarioID }, set: { store.selectScenario($0) })) {
                             ForEach(demoScenarios) { scenario in Text(scenario.name).tag(scenario.id) }
                         }.pickerStyle(.menu)
@@ -82,7 +86,7 @@ struct PracticeView: View {
                             .font(.caption).foregroundStyle(.secondary)
                     }
                 }.padding(24)
-            }.scrollDisabled(store.running && store.overlayTool == .draw).background(Color(red: 0.035, green: 0.055, blue: 0.07)).toolbar(.hidden, for: .navigationBar)
+            }.sheet(isPresented: $imageTargetOpen) { ReferenceTrackingView() }.scrollDisabled(store.running && store.overlayTool == .draw).background(Color(red: 0.035, green: 0.055, blue: 0.07)).toolbar(.hidden, for: .navigationBar)
         }
     }
 }
@@ -158,7 +162,7 @@ struct SettingsView: View {
                     Label("Spoken instructions", systemImage: "speaker.wave.2")
                     Text("Voice commands, gaze/pinch, hand tracking, live scene recognition, and headset clients are planned—not implemented in this build.").font(.caption)
                 }
-                Section("Prototype 0.2") {
+                Section("Prototype 0.3") {
                     Text("iPhone first. Multiple authored demo domains, spatial drawing, and optional planner/reviewer/presenter agents. Generated plans remain review-only. Headset clients and live scene understanding are not implemented.")
                 }
             }.navigationTitle("Connect")

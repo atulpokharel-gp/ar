@@ -120,7 +120,7 @@ def validate_steps(result, context, domain):
     allowed_pages = {p['page'] for p in context}
     validated = []
     for i, step in enumerate(steps):
-        if not isinstance(step, dict) or set(step) != {'title', 'instruction', 'action', 'confirmation', 'pages'}:
+        if not isinstance(step, dict) or set(step) - {'title', 'instruction', 'action', 'confirmation', 'pages', 'evidence'} or not {'title', 'instruction', 'action', 'confirmation', 'pages'} <= set(step):
             raise ValueError('Invalid step fields')
         if step['action'] not in SCENE_ACTIONS:
             raise ValueError('Unsupported scene action')
@@ -129,13 +129,35 @@ def validate_steps(result, context, domain):
             raise ValueError('Invalid source page')
         if domain == 'maintenance' and not refs:
             raise ValueError('Maintenance step requires manual evidence')
+        evidence = validate_evidence(step.get('evidence', []), refs, context, required=(domain == 'maintenance'))
         validated.append({'id': f'proposal-{i+1}',
             'title': bounded_text(step['title'], 'title', 120),
             'instruction': bounded_text(step['instruction'], 'instruction', 1000),
             'action': step['action'],
             'confirmation': bounded_text(step['confirmation'], 'confirmation', 180),
-            'pages': sorted(set(refs))})
+            'pages': sorted(set(refs)), 'evidence': evidence})
     return validated
+
+
+def validate_evidence(evidence, refs, context, required=False):
+    """Check literal passage support; this does NOT establish semantic entailment."""
+    if not isinstance(evidence, list) or len(evidence) > 4 or (required and not evidence):
+        raise ValueError('Provide up to four source excerpts; maintenance requires evidence')
+    checked = []
+    normalize = lambda text: ' '.join(text.split())
+    for item in evidence:
+        if not isinstance(item, dict) or set(item) != {'page', 'quote'}:
+            raise ValueError('Evidence must contain page and quote')
+        page = item['page']
+        quote = bounded_text(item['quote'], 'evidence quote', 600)
+        if type(page) is not int or page not in refs or len(quote) < 12:
+            raise ValueError('Evidence must reference a cited page and substantive excerpt')
+        if not any(p['page'] == page and normalize(quote) in normalize(p['text']) for p in context):
+            raise ValueError('Evidence quote not present in retrieved passage')
+        checked.append({'page': page, 'quote': quote})
+    if required and set(refs) != {e['page'] for e in checked}:
+        raise ValueError('Each maintenance source page needs a matching excerpt')
+    return checked
 
 
 def plan_response(status, domain, goal, summary, steps=None, agents=None):
@@ -161,11 +183,11 @@ def plan(payload):
     planner_prompt = boundary + (
         'You are the planner agent. Draft an ADVISORY demonstration proposal, not an approved '
         'procedure. Return JSON with exactly steps, an array of 1–8 objects with exactly title, '
-        'instruction, action, confirmation, pages. action is one of marker,arrow,draw,highlight,inspect. '
+        'instruction, action, confirmation, pages, evidence. action is one of marker,arrow,draw,highlight,inspect. '
         'These are visual cue suggestions only, not executable commands or coordinates. '
         'Use title <=120 characters, instruction <=1000, confirmation <=180. pages is an array '
-        'of supplied page numbers; every maintenance step must have evidence. For other domains '
-        'pages may be empty. Preserve explicit user confirmation. Do not invent equipment details.')
+        'of supplied page numbers. evidence is an array of up to four objects with page and quote. Each quote must be an exact 12–600 character excerpt from a supplied passage. Every maintenance step requires evidence for each cited page. For other domains '
+        'pages and evidence may be empty. Preserve explicit user confirmation. Do not invent equipment details.')
     steps = validate_steps(model_json(planner_prompt,
         {'domain': domain, 'goal': goal, 'passages': context}), context, domain)
     agents = [{'role': 'planner', 'status': 'completed',

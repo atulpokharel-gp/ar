@@ -1,6 +1,6 @@
 # FieldGuide — iPhone spatial guidance prototype
 
-Version 0.2 · November 8, 2026
+Version 0.3 · November 9, 2026
 
 Native SwiftUI iPhone source project with ARKit/SceneKit, PDFKit and spoken instructions. No third-party iOS dependencies. This is a development prototype, not an installed or signed app.
 
@@ -16,6 +16,14 @@ Native SwiftUI iPhone source project with ARKit/SceneKit, PDFKit and spoken inst
 - Shared semantic action definitions, headset roadmap and GitHub build/test workflow.
 
 See [MULTI_AGENT_AR.md](MULTI_AGENT_AR.md) for architecture, interaction details and limits.
+
+## Reference-based improvements in v0.3
+
+- **Reference-image tracking:** Guide → Track a reference image. Enter its printed width, import a PNG/JPEG, and show its printed copy to the camera. A pulsing overlay attaches to the recognized image anchor and hides when tracking is lost. This is a separate mode from surface drawing.
+- **Evidence excerpts:** maintenance proposals must provide exact excerpts from retrieved passages for each cited page. The Agents screen displays those excerpts. This verifies quotation presence, not whether the proposed action logically follows or is safe.
+- **Reference audit:** see [REFERENCE_PROJECTS.md](REFERENCE_PROJECTS.md) for exact upstream commits, inspected files, licensing and reuse decisions.
+
+Reference images are processed locally; there is no QR decoding, arbitrary device recognition or model-specific animation generation. The new iOS source still requires compilation and physical-device testing.
 
 ## Run on your iPhone
 
